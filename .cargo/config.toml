@@ -1,0 +1,6 @@
+[build]
+
+[profile.dev]
+debug = 0
+codegen-units = 16
+incremental = true
