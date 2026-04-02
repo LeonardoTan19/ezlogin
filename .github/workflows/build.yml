@@ -168,7 +168,7 @@ jobs:
           sdkmanager "ndk;27.0.12077973"
           echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/27.0.12077973" >> "$GITHUB_ENV"
 
-      - name: Prepare Android signing keystore
+      - name: Prepare Android signing files
         shell: bash
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -184,6 +184,13 @@ jobs:
           KEYSTORE_PATH="$KEYSTORE_DIR/release.jks"
           mkdir -p "$KEYSTORE_DIR"
           echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          cd src-tauri/gen/android
+          cat > keystore.properties <<EOF
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          storeFile=$KEYSTORE_PATH
+          EOF
           echo "TAURI_ANDROID_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
 
       - name: Configure Android toolchain for Rust/OpenSSL

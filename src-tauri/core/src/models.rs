@@ -8,6 +8,20 @@ pub struct OcrResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum LoginFailureKind {
+    InvalidCaptcha,
+    InvalidCredentials,
+    InvalidCredentialsOrLocked,
+    AccountLocked,
+    NetworkUnavailable,
+    PortalPageUnreachable,
+    ConnectivityProbeFailed,
+    MaxRetriesExceeded,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LoginResponse {
     pub success: bool,
@@ -16,6 +30,7 @@ pub struct LoginResponse {
     pub confidence: f32,
     pub attempt: u32,
     pub probe_passed: bool,
+    pub failure_kind: Option<LoginFailureKind>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

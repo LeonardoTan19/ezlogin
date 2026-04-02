@@ -45,17 +45,24 @@ fn preprocess(image_bytes: &[u8]) -> Result<Array4<f32>> {
     let target_w = ((INPUT_HEIGHT as f32 * ratio).ceil() as u32).clamp(1, INPUT_WIDTH);
 
     let resized = image::imageops::resize(&src, target_w, INPUT_HEIGHT, FilterType::Triangle);
+    let resized = resized.as_raw();
 
     let mut data = vec![0.0_f32; (3 * INPUT_WIDTH * INPUT_HEIGHT) as usize];
+    let plane_size = (INPUT_WIDTH * INPUT_HEIGHT) as usize;
+    let row_stride = (target_w * 3) as usize;
+    let scale = 1.0_f32 / 127.5_f32;
+
     for y in 0..INPUT_HEIGHT {
-        for x in 0..target_w {
-            let p = resized.get_pixel(x, y);
-            let idx = (y * INPUT_WIDTH + x) as usize;
-            for c in 0..3_usize {
-                let normalized = (f32::from(p[c]) / 255.0 - 0.5) / 0.5;
-                let offset = c * (INPUT_WIDTH * INPUT_HEIGHT) as usize + idx;
-                data[offset] = normalized;
-            }
+        let row_start = (y as usize) * row_stride;
+        let row = &resized[row_start..row_start + row_stride];
+
+        for (x, pixel) in row.chunks_exact(3).enumerate() {
+            let idx = (y * INPUT_WIDTH + x as u32) as usize;
+            let base = idx;
+
+            data[base] = f32::from(pixel[0]) * scale - 1.0;
+            data[plane_size + base] = f32::from(pixel[1]) * scale - 1.0;
+            data[plane_size * 2 + base] = f32::from(pixel[2]) * scale - 1.0;
         }
     }
 

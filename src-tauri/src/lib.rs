@@ -1,4 +1,6 @@
 use ezlogin_core::models::{LoginOptions, LoginResponse, SavedCredentials};
+#[cfg(any(target_os = "windows", target_os = "android", target_os = "macos"))]
+use std::process::Command;
 
 #[tauri::command]
 async fn portal_login_with_ocr(
@@ -39,6 +41,38 @@ fn is_mobile_platform() -> bool {
     cfg!(any(target_os = "android", target_os = "ios"))
 }
 
+#[tauri::command]
+fn open_network_settings() -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        Command::new("cmd")
+            .args(["/C", "start", "", "ms-settings:network"])
+            .spawn()
+            .map_err(|e| format!("无法打开 Windows 网络设置: {e}"))?;
+        return Ok(());
+    }
+
+    #[cfg(target_os = "android")]
+    {
+        Command::new("am")
+            .args(["start", "-a", "android.settings.WIFI_SETTINGS"])
+            .spawn()
+            .map_err(|e| format!("无法打开 Android 网络设置: {e}"))?;
+        return Ok(());
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        return Err(
+            "Linux CLI 模式请手动检测连通性：ping -c 1 192.168.200.127；curl -I --max-time 5 http://www.msftconnecttest.com/redirect"
+                .to_string(),
+        );
+    }
+
+    #[allow(unreachable_code)]
+    Err("当前系统暂不支持自动打开网络设置".to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -51,6 +85,7 @@ pub fn run() {
             save_login_options,
             load_login_options,
             is_mobile_platform,
+            open_network_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

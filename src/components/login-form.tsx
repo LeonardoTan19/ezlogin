@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils"
-import { Alert } from "@/components/ui/alert"
+import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AuthCard } from "@/components/auth-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,11 +11,15 @@ type LoginFormProps = React.ComponentProps<"div"> & {
   rememberMe: boolean
   isLoading: boolean
   error?: string
+  errorTitle?: string
   message?: string
   showDesktopControls: boolean
+  showNetworkSettingsAction?: boolean
+  isOpeningNetworkSettings?: boolean
   onAccountChange: (value: string) => void
   onPasswordChange: (value: string) => void
   onRememberMeChange: (value: boolean) => void
+  onOpenNetworkSettings?: () => void
   onOpenSettings: () => void
   onFormSubmit: (event: React.FormEvent<HTMLFormElement>) => void
 }
@@ -26,11 +30,15 @@ export function LoginForm({
   rememberMe,
   isLoading,
   error,
+  errorTitle,
   message,
   showDesktopControls,
+  showNetworkSettingsAction,
+  isOpeningNetworkSettings,
   onAccountChange,
   onPasswordChange,
   onRememberMeChange,
+  onOpenNetworkSettings,
   onOpenSettings,
   onFormSubmit,
   className,
@@ -87,7 +95,25 @@ export function LoginForm({
             </Button>
           </form>
 
-          {error ? <Alert variant="destructive" className="mt-4">{error}</Alert> : null}
+          {error ? (
+            <Alert variant="destructive" className="mt-4">
+              <AlertTitle>{errorTitle ?? "登录失败"}</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+              {showNetworkSettingsAction ? (
+                <AlertAction>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={Boolean(isOpeningNetworkSettings)}
+                    onClick={onOpenNetworkSettings}
+                  >
+                    {isOpeningNetworkSettings ? "打开中..." : "打开网络设置"}
+                  </Button>
+                </AlertAction>
+              ) : null}
+            </Alert>
+          ) : null}
           {message ? <Alert variant="success" className="mt-4">{message}</Alert> : null}
       </AuthCard>
     </div>
