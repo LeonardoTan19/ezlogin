@@ -1222,7 +1222,7 @@ dependencies = [
 
 [[package]]
 name = "ezlogin"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "ezlogin-core",
  "jni",
@@ -1234,7 +1234,7 @@ dependencies = [
 
 [[package]]
 name = "ezlogin-cli"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "clap",
  "ezlogin-core",
@@ -1245,7 +1245,7 @@ dependencies = [
 
 [[package]]
 name = "ezlogin-core"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "aes-gcm",
  "anyhow",
