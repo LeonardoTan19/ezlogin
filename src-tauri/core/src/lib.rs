@@ -90,11 +90,11 @@ pub async fn login_with_ocr(
             }
         };
         let ocr_result = tokio::task::spawn_blocking(move || -> Result<crate::models::OcrResult, String> {
-            let mut guard = OCR_ENGINE
+            let guard = OCR_ENGINE
                 .lock()
                 .map_err(|_| "ocr engine lock poisoned".to_string())?;
             let engine = guard
-                .as_mut()
+                .as_ref()
                 .ok_or_else(|| "ocr engine not initialized".to_string())?;
             engine
                 .recognize(&image)

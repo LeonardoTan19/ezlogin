@@ -779,7 +779,6 @@ mod tests {
     #[test]
     fn regression_status_code_1106_locked_account() {
         // Portal returns success:true + statusCode:1106 when account is locked.
-        // is_login_success must return false.
         let payload = json!({
             "success": true,
             "message": "该帐号已经被锁定，锁定剩余时间（单位:分）：N",
@@ -787,7 +786,6 @@ mod tests {
         });
         let body = payload.to_string();
         assert!(!is_login_success(Some(&payload), &body));
-        // classify must reach the message branch and return AccountLocked.
         let msg = "该帐号已经被锁定，锁定剩余时间（单位:分）：N";
         assert!(matches!(
             classify_login_failure_kind(Some(&payload), Some(msg)),
@@ -798,7 +796,6 @@ mod tests {
     #[test]
     fn regression_status_code_1101_wrong_credentials() {
         // Portal returns success:true + statusCode:1101 for wrong credentials/captcha.
-        // is_login_success must return false.
         let payload = json!({
             "success": true,
             "message": "用户名或密码错误，或者用户被锁定",
@@ -806,7 +803,6 @@ mod tests {
         });
         let body = payload.to_string();
         assert!(!is_login_success(Some(&payload), &body));
-        // classify must reach the message branch.
         let msg = "用户名或密码错误，或者用户被锁定";
         assert!(matches!(
             classify_login_failure_kind(Some(&payload), Some(msg)),

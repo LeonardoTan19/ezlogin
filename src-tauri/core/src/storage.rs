@@ -74,8 +74,6 @@ fn ensure_writable_dir(path: &Path) -> bool {
     true
 }
 
-// ===== Android: AES-GCM file storage =====
-
 #[cfg(target_os = "android")]
 #[derive(Debug, Serialize, Deserialize)]
 struct StoredCredentials {
@@ -185,8 +183,6 @@ pub fn clear_credentials() -> Result<(), String> {
     Ok(())
 }
 
-// ===== Desktop: file-based storage =====
-
 #[cfg(not(target_os = "android"))]
 #[derive(Debug, Serialize, Deserialize)]
 struct CredentialsFile {
@@ -246,8 +242,6 @@ pub fn clear_credentials() -> Result<(), String> {
     }
     Ok(())
 }
-
-// ===== login options (non-secret, both platforms use file) =====
 
 pub fn save_login_options(options: &LoginOptions) -> Result<(), String> {
     let path = login_options_path()?;
