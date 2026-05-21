@@ -14,7 +14,6 @@ pub enum LoginFailureKind {
     InvalidCredentials,
     InvalidCredentialsOrLocked,
     AccountLocked,
-    NetworkUnavailable,
     PortalPageUnreachable,
     ConnectivityProbeFailed,
     MaxRetriesExceeded,

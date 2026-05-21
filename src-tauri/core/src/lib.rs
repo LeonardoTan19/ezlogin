@@ -34,16 +34,17 @@ fn ensure_ocr_engine() -> Result<(), String> {
 
 async fn check_portal_reachable(timeout: Duration) -> Option<(LoginFailureKind, String)> {
     use tokio::net::TcpStream;
-    match tokio::time::timeout(timeout, TcpStream::connect(("192.168.200.127", 8445))).await {
-        Ok(Ok(_)) => None,
-        Ok(Err(_)) => Some((
-            LoginFailureKind::NetworkUnavailable,
-            "当前网络不可用，请检查网络设置后重试".to_string(),
-        )),
-        Err(_) => Some((
+    let reachable = tokio::time::timeout(timeout, TcpStream::connect(("192.168.200.127", 8445)))
+        .await
+        .is_ok_and(|r| r.is_ok());
+
+    if reachable {
+        None
+    } else {
+        Some((
             LoginFailureKind::PortalPageUnreachable,
             "认证网页暂时无法访问，请检查网络设置或稍后重试".to_string(),
-        )),
+        ))
     }
 }
 
@@ -241,8 +242,8 @@ fn classify_transport_failure(raw_error: &str) -> (LoginFailureKind, String) {
 
     if network_unavailable {
         return (
-            LoginFailureKind::NetworkUnavailable,
-            "当前网络不可用，请检查网络设置后重试".to_string(),
+            LoginFailureKind::PortalPageUnreachable,
+            "认证网页暂时无法访问，请检查网络设置或稍后重试".to_string(),
         );
     }
 

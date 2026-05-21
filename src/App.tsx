@@ -16,7 +16,6 @@ type LoginResponse = {
     | "INVALID_CREDENTIALS"
     | "INVALID_CREDENTIALS_OR_LOCKED"
     | "ACCOUNT_LOCKED"
-    | "NETWORK_UNAVAILABLE"
     | "PORTAL_PAGE_UNREACHABLE"
     | "CONNECTIVITY_PROBE_FAILED"
     | "MAX_RETRIES_EXCEEDED"
@@ -133,7 +132,7 @@ function App() {
     }
   }
 
-  const canOpenNetworkSettings = failureKind === "NETWORK_UNAVAILABLE" && !isLinuxDesktop;
+  const canOpenNetworkSettings = failureKind === "PORTAL_PAGE_UNREACHABLE" && !isLinuxDesktop;
 
   async function handleOpenNetworkSettings() {
     setIsOpeningNetworkSettings(true);
@@ -235,8 +234,6 @@ function App() {
 
 function getFailureTitle(failureKind: FailureKind | null): string {
   switch (failureKind) {
-    case "NETWORK_UNAVAILABLE":
-      return "当前未联网";
     case "PORTAL_PAGE_UNREACHABLE":
       return "认证网页不可达";
     case "CONNECTIVITY_PROBE_FAILED":
@@ -258,8 +255,7 @@ function buildErrorMessage(
   failureKind: FailureKind | null,
   isLinuxDesktop: boolean,
 ): string {
-  const isNetworkFailure =
-    failureKind === "NETWORK_UNAVAILABLE" || failureKind === "PORTAL_PAGE_UNREACHABLE";
+  const isNetworkFailure = failureKind === "PORTAL_PAGE_UNREACHABLE";
 
   if (!isLinuxDesktop || !isNetworkFailure) {
     return message;
