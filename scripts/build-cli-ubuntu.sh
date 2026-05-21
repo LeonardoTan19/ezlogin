@@ -25,9 +25,22 @@ cargo build --release
 popd >/dev/null
 
 rm -rf "$PKG_ROOT"
-mkdir -p "$PKG_ROOT/usr/local/bin" "$PKG_ROOT/usr/share/doc/ezlogin-cli"
+mkdir -p \
+    "$PKG_ROOT/usr/local/bin" \
+    "$PKG_ROOT/usr/share/doc/ezlogin-cli" \
+    "$PKG_ROOT/usr/share/bash-completion/completions" \
+    "$PKG_ROOT/usr/share/zsh/vendor-completions" \
+    "$PKG_ROOT/usr/share/fish/vendor_completions.d" \
+    "$PKG_ROOT/usr/share/man/man1"
 
 install -m 0755 "$ROOT_DIR/src-tauri/target/release/ezlogin-cli" "$PKG_ROOT/usr/local/bin/ezlogin"
+
+BIN="$PKG_ROOT/usr/local/bin/ezlogin"
+"$BIN" completions bash > "$PKG_ROOT/usr/share/bash-completion/completions/ezlogin"
+"$BIN" completions zsh  > "$PKG_ROOT/usr/share/zsh/vendor-completions/_ezlogin"
+"$BIN" completions fish > "$PKG_ROOT/usr/share/fish/vendor_completions.d/ezlogin.fish"
+"$BIN" man | gzip -9    > "$PKG_ROOT/usr/share/man/man1/ezlogin.1.gz"
+
 cat > "$PKG_ROOT/usr/share/doc/ezlogin-cli/README" <<'EOF'
 ezlogin CLI
 
