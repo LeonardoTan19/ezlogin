@@ -8,7 +8,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 anyhow = "1"
 tokio = { version = "1", features = ["time", "macros", "rt", "net"] }
-image = { version = "0.25", default-features = false, features = ["png"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
 tract-onnx = "0.21"
 serde_urlencoded = "0.7"
 dirs = "5"
