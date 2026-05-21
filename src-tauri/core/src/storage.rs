@@ -185,61 +185,66 @@ pub fn clear_credentials() -> Result<(), String> {
     Ok(())
 }
 
-// ===== Desktop: system keychain via `keyring` =====
-
-#[cfg(not(target_os = "android"))]
-const KEYRING_SERVICE: &str = "ezlogin";
-#[cfg(not(target_os = "android"))]
-const KEYRING_USER: &str = "default";
+// ===== Desktop: file-based storage =====
 
 #[cfg(not(target_os = "android"))]
 #[derive(Debug, Serialize, Deserialize)]
-struct KeyringPayload {
+struct CredentialsFile {
     account: String,
     password: String,
 }
 
 #[cfg(not(target_os = "android"))]
-fn keyring_entry() -> Result<keyring::Entry, String> {
-    keyring::Entry::new(KEYRING_SERVICE, KEYRING_USER)
-        .map_err(|e| format!("keyring init failed: {e}"))
+fn credentials_path() -> Result<PathBuf, String> {
+    Ok(app_config_dir()?.join("credentials.json"))
 }
 
 #[cfg(not(target_os = "android"))]
 pub fn save_credentials(account: &str, password: &str) -> Result<(), String> {
-    let payload = KeyringPayload {
+    let path = credentials_path()?;
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|e| format!("failed to create config dir: {e}"))?;
+    }
+    let content = serde_json::to_string(&CredentialsFile {
         account: account.to_string(),
         password: password.to_string(),
-    };
-    let serialized = serde_json::to_string(&payload).map_err(|e| e.to_string())?;
-    keyring_entry()?
-        .set_password(&serialized)
-        .map_err(|e| format!("keyring write failed: {e}"))
+    })
+    .map_err(|e| e.to_string())?;
+    fs::write(&path, &content)
+        .map_err(|e| format!("failed to write credentials: {e}"))?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o600))
+            .map_err(|e| format!("failed to set credentials permissions: {e}"))?;
+    }
+    Ok(())
 }
 
 #[cfg(not(target_os = "android"))]
 pub fn load_credentials() -> Result<Option<SavedCredentials>, String> {
-    match keyring_entry()?.get_password() {
-        Ok(json) => {
-            let payload: KeyringPayload =
-                serde_json::from_str(&json).map_err(|e| e.to_string())?;
-            Ok(Some(SavedCredentials {
-                account: payload.account,
-                password: payload.password,
-            }))
-        }
-        Err(keyring::Error::NoEntry) => Ok(None),
-        Err(e) => Err(format!("keyring read failed: {e}")),
+    let path = credentials_path()?;
+    if !path.exists() {
+        return Ok(None);
     }
+    let content = fs::read_to_string(&path)
+        .map_err(|e| format!("failed to read credentials: {e}"))?;
+    let file: CredentialsFile = serde_json::from_str(&content).map_err(|e| e.to_string())?;
+    Ok(Some(SavedCredentials {
+        account: file.account,
+        password: file.password,
+    }))
 }
 
 #[cfg(not(target_os = "android"))]
 pub fn clear_credentials() -> Result<(), String> {
-    match keyring_entry()?.delete_credential() {
-        Ok(()) => Ok(()),
-        Err(keyring::Error::NoEntry) => Ok(()),
-        Err(e) => Err(format!("keyring delete failed: {e}")),
+    let path = credentials_path()?;
+    if path.exists() {
+        fs::remove_file(&path)
+            .map_err(|e| format!("failed to remove credentials: {e}"))?;
     }
+    Ok(())
 }
 
 // ===== login options (non-secret, both platforms use file) =====

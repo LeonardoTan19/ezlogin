@@ -514,6 +514,11 @@ fn current_time_for_valid_code() -> String {
 }
 
 fn is_login_success(payload: Option<&Value>, body: &str) -> bool {
+    // Empty body from webAuthAction!login.action means login succeeded.
+    if body.trim().is_empty() {
+        return true;
+    }
+
     if let Some(Value::Object(map)) = payload {
         if let Some(Value::Object(data)) = map.get("data") {
             let portal_auth = value_as_bool(data.get("portalAuth"));
@@ -536,6 +541,13 @@ fn is_login_success(payload: Option<&Value>, body: &str) -> bool {
             {
                 return true;
             }
+
+            // data.statusCode is authoritative: the outer `success` field only reflects
+            // whether the HTTP API call completed, not whether authentication succeeded.
+            // e.g. account locked (1106) and wrong credentials (1101) both return success=true.
+            if data.contains_key("statusCode") {
+                return false;
+            }
         }
 
         if value_as_bool(map.get("success")) {
@@ -557,8 +569,6 @@ fn is_login_success(payload: Option<&Value>, body: &str) -> bool {
 
     let lowered = body.to_lowercase();
     lowered.contains("success.jsp")
-        || lowered.contains("\"success\":true")
-        || lowered.contains("\"code\":0")
 }
 
 fn extract_login_message(payload: Option<&Value>) -> Option<String> {
@@ -594,9 +604,15 @@ fn extract_login_message(payload: Option<&Value>) -> Option<String> {
 fn classify_login_failure_kind(payload: Option<&Value>, message: Option<&str>) -> Option<LoginFailureKind> {
     if let Some(Value::Object(map)) = payload {
         if let Some(Value::Object(data)) = map.get("data") {
-            if let Some(code) = value_as_i64(data.get("portalErrorCode")) {
-                if code == 0 {
-                    return None;
+            let status_code = value_as_i64(data.get("statusCode"));
+            // statusCode (e.g. 1101, 1106) takes precedence: skip the portalErrorCode==0
+            // early-return so message-based classification can still run.
+            let has_status_failure = matches!(status_code, Some(c) if c != 1000);
+            if !has_status_failure {
+                if let Some(code) = value_as_i64(data.get("portalErrorCode")) {
+                    if code == 0 {
+                        return None;
+                    }
                 }
             }
         }
@@ -737,8 +753,8 @@ mod tests {
                 "accessStatus": 1501
             }
         });
-
-        assert!(!is_login_success(Some(&payload), ""));
+        let body = payload.to_string();
+        assert!(!is_login_success(Some(&payload), &body));
     }
 
     #[test]
@@ -757,6 +773,44 @@ mod tests {
         assert!(matches!(
             classify_login_failure_kind(Some(&payload), Some("验证码已刷新")),
             Some(LoginFailureKind::Unknown)
+        ));
+    }
+
+    #[test]
+    fn regression_status_code_1106_locked_account() {
+        // Portal returns success:true + statusCode:1106 when account is locked.
+        // is_login_success must return false.
+        let payload = json!({
+            "success": true,
+            "message": "该帐号已经被锁定，锁定剩余时间（单位:分）：N",
+            "data": { "statusCode": 1106 }
+        });
+        let body = payload.to_string();
+        assert!(!is_login_success(Some(&payload), &body));
+        // classify must reach the message branch and return AccountLocked.
+        let msg = "该帐号已经被锁定，锁定剩余时间（单位:分）：N";
+        assert!(matches!(
+            classify_login_failure_kind(Some(&payload), Some(msg)),
+            Some(LoginFailureKind::AccountLocked)
+        ));
+    }
+
+    #[test]
+    fn regression_status_code_1101_wrong_credentials() {
+        // Portal returns success:true + statusCode:1101 for wrong credentials/captcha.
+        // is_login_success must return false.
+        let payload = json!({
+            "success": true,
+            "message": "用户名或密码错误，或者用户被锁定",
+            "data": { "statusCode": 1101 }
+        });
+        let body = payload.to_string();
+        assert!(!is_login_success(Some(&payload), &body));
+        // classify must reach the message branch.
+        let msg = "用户名或密码错误，或者用户被锁定";
+        assert!(matches!(
+            classify_login_failure_kind(Some(&payload), Some(msg)),
+            Some(LoginFailureKind::InvalidCredentialsOrLocked)
         ));
     }
 }

@@ -8,7 +8,7 @@ use ezlogin_core::models::{LoginOptions, LoginResponse};
 #[command(name = "ezlogin", version, about = "EZLogin Ubuntu CLI")]
 struct Cli {
     #[command(subcommand)]
-    command: Commands,
+    command: Option<Commands>,
 }
 
 #[derive(Subcommand, Debug)]
@@ -60,11 +60,25 @@ struct LoginArgs {
     save_after_login: bool,
 }
 
+impl Default for LoginArgs {
+    fn default() -> Self {
+        Self {
+            account: None,
+            password: None,
+            retries: None,
+            timeout: None,
+            probe_required: None,
+            use_saved: true,
+            save_after_login: false,
+        }
+    }
+}
+
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> ExitCode {
     let cli = Cli::parse();
 
-    let result = match cli.command {
+    let result = match cli.command.unwrap_or_else(|| Commands::Login(LoginArgs::default())) {
         Commands::Init(args) => init_command(args),
         Commands::Set(args) => set_command(args),
         Commands::ShowConfig => show_config_command(),
