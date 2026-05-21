@@ -1,6 +1,6 @@
 # ezlogin
 
-`ezlogin` 是一个校园网/门户自动登录工具，提供桌面端（Tauri + React）和命令行（CLI）两种使用方式。
+`ezlogin` 是一个BESTI校园网自动登录工具，提供桌面端（Tauri + React）和命令行（CLI）两种使用方式。
 
 ## 核心功能
 
@@ -27,7 +27,7 @@
 构建：
 
 ```bash
-cargo build --manifest-path src-tauri/cli/Cargo.toml --release
+cargo build --release  # 在 src-tauri/ 下运行，输出到 src-tauri/target/release/
 ```
 
 常用命令：
@@ -55,7 +55,7 @@ ezlogin login --account <账号> --password <密码> --retries 3 --timeout 10 --
 ## Ubuntu 打包（CLI）
 
 ```bash
-./scripts/package-cli-ubuntu.sh 0.1.0
+./scripts/build-cli-ubuntu.sh 0.1.0
 ```
 
 产物位于 `dist-cli/`：
@@ -89,20 +89,10 @@ base64 -w 0 release.jks > release.jks.b64
 
 ### 本地 Android 构建
 
-本地需要两个文件，都已被 `.gitignore` 屏蔽：
-
-1. keystore 文件（推荐放在 `src-tauri/gen/android/keystore/ezlogin-release.jks`）
-2. `src-tauri/gen/android/keystore.properties`：
-
-```properties
-keyAlias=<你的 alias>
-keyPassword=<alias 密码>
-storePassword=<keystore 密码>
-storeFile=keystore/ezlogin-release.jks
-```
-
-之后即可：
+复制 `.env.example` 为 `.env` 并填写 SDK 路径与签名信息，然后运行：
 
 ```bash
-pnpm tauri android build --apk --target aarch64
+./scripts/build-android.sh
 ```
+
+脚本会自动加载 `.env`、配置 NDK 工具链并执行构建。`.env` 与 keystore 文件均已被 `.gitignore` 屏蔽，不会进入仓库。
