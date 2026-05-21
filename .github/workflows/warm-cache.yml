@@ -1,0 +1,51 @@
+name: warm-cache
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  cli:
+    name: cargo-cli
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            src-tauri/target
+          key: cargo-cli-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-cli-${{ runner.os }}-
+      - name: Fetch dependencies
+        run: cargo fetch --manifest-path src-tauri/Cargo.toml
+
+  android:
+    name: cargo-android
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            src-tauri/target/aarch64-linux-android
+          key: cargo-android-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-android-
+      - name: Fetch dependencies
+        run: cargo fetch --manifest-path src-tauri/Cargo.toml
