@@ -49,3 +49,6 @@ __pycache__/
 .env
 .env.*
 !.env.example
+scripts/convert_common_old_fp32.py
+.gitignore
+scripts/optimize_common_fp16.py

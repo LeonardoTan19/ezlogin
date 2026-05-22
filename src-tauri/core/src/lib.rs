@@ -11,8 +11,8 @@ use models::{LoginFailureKind, LoginOptions, LoginResponse, SavedCredentials};
 use ocr::OcrEngine;
 use portal::PortalClient;
 
-const EMBEDDED_REC_ONNX: &[u8] = include_bytes!("../../resources/rec.onnx");
-const EMBEDDED_DICT_TXT: &str = include_str!("../../resources/dict.txt");
+const EMBEDDED_MODEL: &[u8] = include_bytes!("../../resources/common_fp16.onnx");
+const EMBEDDED_CHARSET: &str = include_str!("../../resources/charset_alnum.txt");
 
 static OCR_ENGINE: Mutex<Option<OcrEngine>> = Mutex::new(None);
 
@@ -21,7 +21,7 @@ pub fn init_ocr_engine() -> Result<(), String> {
         .lock()
         .map_err(|_| "ocr engine lock poisoned".to_string())?;
     if guard.is_none() {
-        let engine = OcrEngine::from_embedded(EMBEDDED_REC_ONNX, EMBEDDED_DICT_TXT)
+        let engine = OcrEngine::from_embedded(EMBEDDED_MODEL, EMBEDDED_CHARSET)
             .map_err(|e| e.to_string())?;
         *guard = Some(engine);
     }
