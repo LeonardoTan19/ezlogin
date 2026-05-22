@@ -17,10 +17,6 @@ const EMBEDDED_DICT_TXT: &str = include_str!("../../resources/dict.txt");
 static OCR_ENGINE: Mutex<Option<OcrEngine>> = Mutex::new(None);
 
 pub fn init_ocr_engine() -> Result<(), String> {
-    ensure_ocr_engine()
-}
-
-fn ensure_ocr_engine() -> Result<(), String> {
     let mut guard = OCR_ENGINE
         .lock()
         .map_err(|_| "ocr engine lock poisoned".to_string())?;
@@ -32,34 +28,13 @@ fn ensure_ocr_engine() -> Result<(), String> {
     Ok(())
 }
 
-async fn check_portal_reachable(timeout: Duration) -> Option<(LoginFailureKind, String)> {
-    use tokio::net::TcpStream;
-    let reachable = tokio::time::timeout(timeout, TcpStream::connect(("192.168.200.127", 8445)))
-        .await
-        .is_ok_and(|r| r.is_ok());
-
-    if reachable {
-        None
-    } else {
-        Some((
-            LoginFailureKind::PortalPageUnreachable,
-            "认证网页暂时无法访问，请检查网络设置或稍后重试".to_string(),
-        ))
-    }
-}
-
 pub async fn login_with_ocr(
     account: String,
     password: String,
     options: Option<LoginOptions>,
 ) -> Result<LoginResponse, String> {
     let opts = options.unwrap_or_default();
-    ensure_ocr_engine()?;
-
-    let check_timeout = Duration::from_secs(opts.timeout_secs.min(5));
-    if let Some((kind, msg)) = check_portal_reachable(check_timeout).await {
-        return Ok(failed_response(msg, String::new(), 0.0, 0, false, Some(kind)));
-    }
+    init_ocr_engine()?;
 
     let mut client =
         PortalClient::new(account, password, opts.timeout_secs).map_err(|e| e.to_string())?;
@@ -110,11 +85,7 @@ pub async fn login_with_ocr(
             continue;
         }
 
-        let submit = client
-            .login(&ocr_result.text)
-            .await;
-
-        let submit = match submit {
+        let submit = match client.login(&ocr_result.text).await {
             Ok(submit) => submit,
             Err(e) => {
                 return Ok(transport_failure_response(
@@ -234,25 +205,17 @@ fn transport_failure_response(
 fn classify_transport_failure(raw_error: &str) -> (LoginFailureKind, String) {
     let lowered = raw_error.to_lowercase();
 
-    let network_unavailable = lowered.contains("network is unreachable")
+    let is_unreachable = lowered.contains("network is unreachable")
         || lowered.contains("no route to host")
         || lowered.contains("dns error")
         || lowered.contains("failed to lookup address information")
-        || lowered.contains("temporary failure in name resolution");
-
-    if network_unavailable {
-        return (
-            LoginFailureKind::PortalPageUnreachable,
-            "认证网页暂时无法访问，请检查网络设置或稍后重试".to_string(),
-        );
-    }
-
-    let portal_unreachable = lowered.contains("connection refused")
+        || lowered.contains("temporary failure in name resolution")
+        || lowered.contains("connection refused")
         || lowered.contains("timed out")
         || lowered.contains("deadline has elapsed")
         || lowered.contains("endpoint=");
 
-    if portal_unreachable {
+    if is_unreachable {
         return (
             LoginFailureKind::PortalPageUnreachable,
             "认证网页暂时无法访问，请检查网络设置或稍后重试".to_string(),

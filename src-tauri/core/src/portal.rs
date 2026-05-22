@@ -128,17 +128,10 @@ impl PortalClient {
             );
         }
 
-        #[cfg(target_os = "android")]
         let req = {
+            #[cfg(target_os = "android")]
             let mut req = self.client.request(method.clone(), &url).headers(headers.clone());
-            if let Some(form) = form {
-                req = req.form(form);
-            }
-            req
-        };
-
-        #[cfg(not(target_os = "android"))]
-        let req = {
+            #[cfg(not(target_os = "android"))]
             let mut req = self.client.request(method, &url).headers(headers);
             if let Some(form) = form {
                 req = req.form(form);

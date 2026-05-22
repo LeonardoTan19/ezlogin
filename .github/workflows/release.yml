@@ -31,22 +31,36 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache cargo
-        uses: actions/cache@v4
+      - name: Restore cargo cache
+        uses: actions/cache/restore@v4
+        id: cargo-cache
         with:
           path: |
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             ~/.cargo/git/db
             src-tauri/target
-          key: cargo-cli-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: cargo-cli-${{ runner.os }}-
+          key: cargo-cli-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-${{ github.run_id }}
+          restore-keys: |
+            cargo-cli-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-
+            cargo-cli-${{ runner.os }}-
 
       - name: Build CLI
         run: |
           chmod +x scripts/build-cli-ubuntu.sh
           VERSION="${GITHUB_REF_NAME#v}"
           ./scripts/build-cli-ubuntu.sh "$VERSION"
+
+      - name: Save cargo cache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            src-tauri/target
+          key: cargo-cli-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-${{ github.run_id }}
 
       - name: Upload CLI artifacts
         uses: actions/upload-artifact@v4
@@ -78,16 +92,19 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache cargo
-        uses: actions/cache@v4
+      - name: Restore cargo cache
+        uses: actions/cache/restore@v4
+        id: cargo-cache
         with:
           path: |
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             ~/.cargo/git/db
             src-tauri/target
-          key: cargo-windows-2022-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: cargo-windows-2022-
+          key: cargo-windows-2022-${{ hashFiles('**/Cargo.lock') }}-${{ github.run_id }}
+          restore-keys: |
+            cargo-windows-2022-${{ hashFiles('**/Cargo.lock') }}-
+            cargo-windows-2022-
 
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
@@ -102,6 +119,17 @@ jobs:
           releaseBody: "See the assets below to install this version."
           releaseDraft: false
           prerelease: false
+
+      - name: Save cargo cache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            src-tauri/target
+          key: cargo-windows-2022-${{ hashFiles('**/Cargo.lock') }}-${{ github.run_id }}
 
   build-android:
     name: android-aarch64
@@ -128,16 +156,19 @@ jobs:
         with:
           targets: aarch64-linux-android
 
-      - name: Cache cargo
-        uses: actions/cache@v4
+      - name: Restore cargo cache
+        uses: actions/cache/restore@v4
+        id: cargo-cache
         with:
           path: |
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             ~/.cargo/git/db
             src-tauri/target/aarch64-linux-android
-          key: cargo-android-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: cargo-android-
+          key: cargo-android-${{ hashFiles('**/Cargo.lock') }}-${{ github.run_id }}
+          restore-keys: |
+            cargo-android-${{ hashFiles('**/Cargo.lock') }}-
+            cargo-android-
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -145,14 +176,17 @@ jobs:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
 
-      - name: Cache Gradle
-        uses: actions/cache@v4
+      - name: Restore Gradle cache
+        uses: actions/cache/restore@v4
+        id: gradle-cache
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ hashFiles('src-tauri/gen/android/**/*.gradle*', 'src-tauri/gen/android/**/gradle-wrapper.properties') }}
-          restore-keys: gradle-
+          key: gradle-${{ hashFiles('src-tauri/gen/android/**/*.gradle*', 'src-tauri/gen/android/**/gradle-wrapper.properties') }}-${{ github.run_id }}
+          restore-keys: |
+            gradle-${{ hashFiles('src-tauri/gen/android/**/*.gradle*', 'src-tauri/gen/android/**/gradle-wrapper.properties') }}-
+            gradle-
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -199,6 +233,26 @@ jobs:
           TAURI_ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           TAURI_ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: pnpm tauri android build --apk --target aarch64
+
+      - name: Save Gradle cache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('src-tauri/gen/android/**/*.gradle*', 'src-tauri/gen/android/**/gradle-wrapper.properties') }}-${{ github.run_id }}
+
+      - name: Save cargo cache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            src-tauri/target/aarch64-linux-android
+          key: cargo-android-${{ hashFiles('**/Cargo.lock') }}-${{ github.run_id }}
 
       - name: Rename APK
         run: |

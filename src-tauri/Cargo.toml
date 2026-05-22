@@ -3,7 +3,7 @@ members = [".", "core", "cli"]
 
 [package]
 name = "ezlogin"
-version = "1.4.0"
+version = "1.4.1"
 description = "A Tauri App"
 authors = ["Leonardo Tan"]
 edition = "2021"
